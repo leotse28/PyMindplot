@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<map version="1.0.1">
+  <node TEXT="读书笔记" BACKGROUND_COLOR="#7cb342">
+    <font BOLD="true" NAME="SansSerif" SIZE="14"/>
+    <node TEXT="《思考，快与慢》" POSITION="right">
+      <node TEXT="系统1与系统2" COLOR="#1565c0">
+        <node TEXT="直觉反应"/>
+        <node TEXT="深度思考"/>
+      </node>
+      <node TEXT="锚定效应" FOLDED="true">
+        <node TEXT="案例：定价策略"/>
+      </node>
+    </node>
+    <node TEXT="待读清单" POSITION="left">
+      <node TEXT="《置身事内》" COLOR="#c0392b"/>
+      <node TEXT="《金字塔原理》"/>
+      <node TEXT="引用 &amp; 摘录 &lt;第3章&gt;"/>
+    </node>
+  </node>
+</map>
