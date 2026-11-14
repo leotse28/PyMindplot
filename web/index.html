@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PyMindplot</title>
+<link rel="stylesheet" href="css/app.css">
+</head>
+<body>
+  <div id="toolbar" class="toolbar">
+    <div class="tb-group">
+      <button class="tb-btn" id="btn-new" title="新建导图 (Ctrl+N)"><span class="tb-ico">✚</span>新建</button>
+      <button class="tb-btn" id="btn-open" title="打开 .mm / .xml / .xmind (Ctrl+O)"><span class="tb-ico">📂</span>打开</button>
+      <button class="tb-btn" id="btn-save" title="保存 (Ctrl+S)"><span class="tb-ico">💾</span>保存</button>
+      <button class="tb-btn" id="btn-saveas" title="另存为"><span class="tb-ico">📝</span>另存为</button>
+    </div>
+    <div class="tb-sep"></div>
+    <div class="tb-group">
+      <button class="tb-btn" id="btn-add-child" title="添加子节点 (Tab)"><span class="tb-ico">├</span>子节点</button>
+      <button class="tb-btn" id="btn-add-sibling" title="添加同级节点 (Enter)"><span class="tb-ico">≡</span>同级</button>
+      <button class="tb-btn" id="btn-edit" title="编辑节点 (F2)"><span class="tb-ico">✎</span>编辑</button>
+      <button class="tb-btn" id="btn-delete" title="删除节点 (Delete)"><span class="tb-ico">✕</span>删除</button>
+    </div>
+    <div class="tb-sep"></div>
+    <div class="tb-group">
+      <button class="tb-btn" id="btn-collapse-all" title="折叠所有分支"><span class="tb-ico">⊖</span>折叠</button>
+      <button class="tb-btn" id="btn-expand-all" title="展开所有分支"><span class="tb-ico">⊕</span>展开</button>
+    </div>
+    <div class="tb-sep"></div>
+    <div class="tb-group">
+      <button class="tb-btn" id="btn-undo" title="撤销 (Ctrl+Z)"><span class="tb-ico">↶</span>撤销</button>
+      <button class="tb-btn" id="btn-redo" title="重做 (Ctrl+Y)"><span class="tb-ico">↷</span>重做</button>
+    </div>
+    <div class="tb-sep"></div>
+    <div class="tb-group">
+      <button class="tb-btn" id="btn-zoom-out" title="缩小 (Ctrl+-)"><span class="tb-ico">－</span></button>
+      <button class="tb-btn" id="btn-zoom-reset" title="重置缩放 (Ctrl+0)">100%</button>
+      <button class="tb-btn" id="btn-zoom-in" title="放大 (Ctrl+=)"><span class="tb-ico">＋</span></button>
+      <button class="tb-btn" id="btn-fit" title="适应画布"><span class="tb-ico">⤢</span>适应</button>
+      <input type="number" id="inp-track-range" class="tb-input" min="20" max="100" step="5" value="65" title="追踪圆形范围（视口短边百分比，20–100）">
+      <input type="number" id="inp-track-zoom" class="tb-input" min="1" max="3" step="0.1" value="1.5" title="追踪放大倍数（1–3，仅作用于选中格子）">
+      <button class="tb-btn" id="btn-track" title="追踪模式 (F4)：圆形范围内完整显示、仅选中格放大，外围渐变虚化，方向键跟随"><span class="tb-ico">◎</span>追踪</button>
+      <button class="tb-btn" id="btn-optimize" title="一键调整格式：按层级设定字号与最小尺寸（逐级递减），并按内容自动加宽与换行"><span class="tb-ico">▣</span>一键调整格式</button>
+      <button class="tb-btn" id="btn-export-png" title="导出高 DPI PNG（整张导图）"><span class="tb-ico">🖼</span>导出PNG</button>
+      <select id="sel-export-dpi" class="tb-select" title="导出分辨率（DPI）">
+        <option value="200">200 DPI</option>
+        <option value="400">400 DPI</option>
+        <option value="600">600 DPI</option>
+      </select>
+      <button class="tb-btn" id="btn-help" title="快捷键速查 (F1)"><span class="tb-ico">⌨</span>快捷键</button>
+    </div>
+      <div class="tb-title" id="tb-title">PyMindplot</div>
+  </div>
+
+  <div id="tabbar" class="tabbar"></div>
+
+  <div id="canvas" class="canvas">
+    <div id="viewport" class="viewport">
+      <svg id="edges" width="400000" height="400000">
+        <g id="edgeG" transform="translate(200000,200000)"></g>
+      </svg>
+      <div id="track-circle" class="track-circle hidden"></div>
+      <div id="nodes" class="nodes-layer"></div>
+    </div>
+    <div id="empty-hint" class="empty-hint hidden">滚轮缩放 · 拖拽空白平移 · Tab 添加子节点 · Enter 添加同级节点</div>
+  </div>
+  <div id="track-pop" class="track-pop hidden"></div>
+
+  <aside id="sidebar" class="sidebar hidden">
+    <div class="sb-title">布局与主题</div>
+    <div class="sb-section">
+      <div class="sb-label">布局</div>
+      <select id="sel-layout" class="sb-select">
+        <option value="map-balance">思维导图（平衡）</option>
+        <option value="map-right">逻辑图（向右）</option>
+        <option value="org-down">组织结构图（向下）</option>
+        <option value="tree-right">树状图</option>
+        <option value="timeline">时间轴（水平）</option>
+        <option value="fishbone">鱼骨图（头向右）</option>
+      </select>
+    </div>
+    <div class="sb-section">
+      <div class="sb-label">主题</div>
+      <select id="sel-theme" class="sb-select">
+        <option value="default">默认蓝</option>
+        <option value="minimal">极简白</option>
+        <option value="dark">暗黑</option>
+        <option value="warm">暖橙</option>
+        <option value="forest">森绿</option>
+        <option value="violet">紫青</option>
+      </select>
+    </div>
+    <div class="sb-title">节点样式</div>
+    <div class="sb-section">
+      <div class="sb-label">背景色</div>
+      <div class="swatches" id="bg-swatches"></div>
+    </div>
+    <div class="sb-section">
+      <div class="sb-label">文字颜色</div>
+      <div class="swatches" id="fg-swatches"></div>
+    </div>
+    <div class="sb-section">
+      <label class="sb-check"><input type="checkbox" id="chk-bold">加粗</label>
+      <label class="sb-check"><input type="checkbox" id="chk-italic">斜体</label>
+      <label class="sb-check"><input type="checkbox" id="chk-underline">下划线</label>
+    </div>
+    <div class="sb-section">
+      <div class="sb-label">字体大小</div>
+      <select id="sel-fontsize" class="sb-select">
+        <option value="0">默认</option>
+        <option value="14">14</option>
+        <option value="16">16</option>
+        <option value="18">18</option>
+        <option value="20">20</option>
+        <option value="22">22</option>
+        <option value="24">24</option>
+        <option value="28">28</option>
+        <option value="32">32</option>
+      </select>
+    </div>
+    <div class="sb-section">
+      <div class="sb-label">LaTeX 公式</div>
+      <input type="text" id="inp-latex" class="sb-input" placeholder="如 \frac{a}{b} 或 x^2">
+      <div class="sb-hint">支持分式、根号、上下标、希腊字母等</div>
+    </div>
+    <div class="sb-section">
+      <button class="sb-btn" id="btn-style-clear">清除样式</button>
+    </div>
+    <div class="sb-title">附件</div>
+    <div class="sb-section">
+      <div id="attach-list" class="attach-list"></div>
+      <button class="sb-btn" id="btn-attach" title="插入附件 (Ctrl+Shift+I)">插入附件 (Ctrl+Shift+I)</button>
+    </div>
+  </aside>
+
+  <div id="statusbar" class="statusbar">
+    <span id="st-file">未命名</span>
+    <span id="st-modified" class="st-mod hidden">● 未保存</span>
+    <span class="st-spacer"></span>
+    <span id="st-hint">双击节点编辑 · 拖拽节点调整层级 · 滚轮缩放</span>
+    <span class="st-spacer"></span>
+    <span id="st-count">0 节点</span>
+    <span id="st-zoom">100%</span>
+  </div>
+
+  <div id="toast" class="toast hidden"></div>
+
+  <div id="find-bar" class="find-bar hidden">
+    <div class="find-row">
+      <input id="inp-find" class="find-input" placeholder="查找（Enter 下一个）">
+      <span id="find-count" class="find-count"></span>
+      <button class="find-btn" id="btn-find-prev" title="上一个 (Shift+Enter)">↑</button>
+      <button class="find-btn" id="btn-find-next" title="下一个 (Enter)">↓</button>
+      <button class="find-btn" id="btn-find-close" title="关闭 (Esc)">✕</button>
+    </div>
+    <div class="find-row hidden" id="replace-row">
+      <input id="inp-replace" class="find-input" placeholder="替换为">
+      <button class="find-btn wide" id="btn-replace-one">替换</button>
+      <button class="find-btn wide" id="btn-replace-all">全部替换</button>
+    </div>
+    <div class="find-row find-opts">
+      <label class="sb-check"><input type="checkbox" id="chk-case">区分大小写</label>
+      <label class="sb-check"><input type="checkbox" id="chk-word">全字匹配</label>
+    </div>
+  </div>
+
+  <div id="ctx-menu" class="ctx-menu hidden">
+    <div class="ctx-item" data-act="child">添加子主题<span class="ctx-key">Tab</span></div>
+    <div class="ctx-item" data-act="sibling">添加同级主题<span class="ctx-key">Enter</span></div>
+    <div class="ctx-item" data-act="edit">编辑文字<span class="ctx-key">F2</span></div>
+    <div class="ctx-item" data-act="collapse">展开/折叠子主题<span class="ctx-key">Space</span></div>
+    <div class="ctx-sep"></div>
+    <div class="ctx-item" data-act="cut">剪切<span class="ctx-key">Ctrl+X</span></div>
+    <div class="ctx-item" data-act="copy">复制<span class="ctx-key">Ctrl+C</span></div>
+    <div class="ctx-item" data-act="paste">粘贴<span class="ctx-key">Ctrl+V</span></div>
+    <div class="ctx-sep"></div>
+    <div class="ctx-item" data-act="attach">插入附件<span class="ctx-key">Ctrl+Shift+I</span></div>
+    <div class="ctx-item" data-act="attach-save">附件另存为</div>
+    <div class="ctx-sep"></div>
+    <div class="ctx-item danger" data-act="del">删除<span class="ctx-key">Delete</span></div>
+  </div>
+
+  <div id="modal" class="modal hidden">
+    <div class="modal-box">
+      <div class="modal-text" id="modal-text"></div>
+      <div class="modal-btns">
+        <button class="modal-btn" id="modal-ok">确定</button>
+        <button class="modal-btn secondary" id="modal-cancel">取消</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="help-modal" class="modal hidden">
+    <div class="modal-box help-box">
+      <div class="help-head">
+        <span class="sb-title">快捷键速查</span>
+        <button class="modal-btn secondary help-close" id="modal-help-close">✕</button>
+      </div>
+      <div class="help-body">
+        <table class="help-table">
+          <tr><th colspan="2">节点编辑</th></tr>
+          <tr><td>Tab / Insert</td><td>添加子节点</td></tr>
+          <tr><td>Enter</td><td>添加同级节点</td></tr>
+          <tr><td>Delete</td><td>删除节点</td></tr>
+          <tr><td>F2 / 双击</td><td>编辑节点文字</td></tr>
+          <tr><td>Space</td><td>折叠 / 展开分支</td></tr>
+          <tr><td>Ctrl+Shift+I</td><td>插入附件</td></tr>
+          <tr><td>Ctrl+B / Ctrl+I</td><td>加粗 / 斜体（编辑文字时同样生效）</td></tr>
+          <tr><td>Ctrl+V 粘贴图片</td><td>选中节点后直接粘贴剪贴板图片</td></tr>
+          <tr><td>右键节点</td><td>上下文菜单</td></tr>
+          <tr><th colspan="2">编辑</th></tr>
+          <tr><td>Ctrl+Z / Ctrl+Y</td><td>撤销 / 重做</td></tr>
+          <tr><td>Ctrl+C / Ctrl+X / Ctrl+V</td><td>复制 / 剪切 / 粘贴节点</td></tr>
+          <tr><th colspan="2">导航</th></tr>
+          <tr><td>↑ / ↓</td><td>上 / 下移动选择</td></tr>
+          <tr><td>← / →</td><td>进入子级 / 返回父级、折叠展开</td></tr>
+          <tr><th colspan="2">文件</th></tr>
+          <tr><td>Ctrl+N</td><td>新建导图</td></tr>
+          <tr><td>Ctrl+O</td><td>打开 .mm / .xml / .xmind</td></tr>
+          <tr><td>Ctrl+S</td><td>保存</td></tr>
+          <tr><td>Ctrl+F / Ctrl+H</td><td>查找 / 查找替换</td></tr>
+          <tr><td>Enter / Shift+Enter / F3</td><td>下一个 / 上一个匹配（循环）</td></tr>
+<tr><td>F4</td><td>追踪模式开关（只显示选中格子及周边范围）</td></tr>
+          <tr><td>右键拖拽空白</td><td>区域框选节点，Del 批量删除</td></tr>
+          <tr><td>Ctrl+T</td><td>新建标签页</td></tr>
+          <tr><td>Ctrl+W</td><td>关闭标签页</td></tr>
+          <tr><td>Ctrl+Tab</td><td>切换标签页</td></tr>
+          <tr><th colspan="2">视图</th></tr>
+          <tr><td>滚轮</td><td>缩放（围绕光标）</td></tr>
+          <tr><td>拖拽空白</td><td>平移画布</td></tr>
+          <tr><td>Ctrl+= / Ctrl+- / Ctrl+0</td><td>放大 / 缩小 / 重置</td></tr>
+          <tr><td>拖拽格子边缘/角落</td><td>调整该格子大小</td></tr>
+          <tr><td>一键调整格式按钮</td><td>字号与最小尺寸按层级递减，并按内容自动加宽换行</td></tr>
+          <tr><td>导出PNG按钮</td><td>整张导图导出为 2 倍分辨率 PNG</td></tr>
+          <tr><td>适应按钮</td><td>适应画布</td></tr>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <script src="js/model.js"></script>
+  <script src="js/layout.js"></script>
+  <script src="js/minimath.js"></script>
+  <script src="js/render.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
